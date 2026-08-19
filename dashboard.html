@@ -1,0 +1,710 @@
+<title>Hermes 依赖预检台</title>
+
+<style>
+  /* ---- 令牌：浅色为基准，深色只覆盖变量 ---- */
+  :root {
+    --paper:      #F1F3F7;
+    --surface:    #FFFFFF;
+    --surface-2:  #F7F8FB;
+    --ink:        #14171F;
+    --ink-soft:   #3A4152;
+    --muted:      #616978;
+    --rule:       #D9DDE6;
+    --rule-soft:  #E7EAF1;
+    --accent:     #C21857;
+    --accent-ink: #FFFFFF;
+    --ok:         #15734A;
+    --ok-bg:      #E3F3EB;
+    --warn:       #8F5D00;
+    --warn-bg:    #F8EEDA;
+    --crit:       #A81F19;
+    --crit-bg:    #FAE6E4;
+    --code-bg:    #12151C;
+    --code-ink:   #E3E7EF;
+    --shadow:     0 1px 2px rgba(20,23,31,.05), 0 8px 24px -12px rgba(20,23,31,.18);
+
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Songti SC", serif;
+    --sans:  system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono:  ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0D1015;
+      --surface:    #151921;
+      --surface-2:  #1B202A;
+      --ink:        #E7EAF1;
+      --ink-soft:   #C2C8D4;
+      --muted:      #8D95A6;
+      --rule:       #262C37;
+      --rule-soft:  #1F242E;
+      --accent:     #FF5F8F;
+      --accent-ink: #1A0710;
+      --ok:         #55D39A;
+      --ok-bg:      #12281F;
+      --warn:       #E8B155;
+      --warn-bg:    #2B2213;
+      --crit:       #FF8079;
+      --crit-bg:    #2E1615;
+      --code-bg:    #0A0D12;
+      --code-ink:   #DDE2EC;
+      --shadow:     0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #0D1015;
+    --surface:    #151921;
+    --surface-2:  #1B202A;
+    --ink:        #E7EAF1;
+    --ink-soft:   #C2C8D4;
+    --muted:      #8D95A6;
+    --rule:       #262C37;
+    --rule-soft:  #1F242E;
+    --accent:     #FF5F8F;
+    --accent-ink: #1A0710;
+    --ok:         #55D39A;
+    --ok-bg:      #12281F;
+    --warn:       #E8B155;
+    --warn-bg:    #2B2213;
+    --crit:       #FF8079;
+    --crit-bg:    #2E1615;
+    --code-bg:    #0A0D12;
+    --code-ink:   #DDE2EC;
+    --shadow:     0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 68rem;
+    margin: 0 auto;
+    padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 4vw, 2.5rem) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  /* ---- 排版 ---- */
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(2.4rem, 6vw, 3.6rem); line-height: 1.08; letter-spacing: -.015em; }
+  h2 { font-size: clamp(1.45rem, 3vw, 1.8rem); line-height: 1.25; }
+  h3 { font-size: 1.06rem; line-height: 1.4; font-family: var(--sans); font-weight: 650; }
+  p  { margin: 0; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 .9rem;
+  }
+  .lede { font-size: 1.08rem; color: var(--ink-soft); max-width: 46rem; }
+  .note { font-size: .875rem; color: var(--muted); }
+  code, .mono { font-family: var(--mono); font-size: .9em; font-variant-ligatures: none; }
+  :not(pre) > code {
+    background: var(--surface-2);
+    border: 1px solid var(--rule-soft);
+    border-radius: 4px;
+    padding: .08em .34em;
+  }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  /* ---- 报头 ---- */
+  header .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1.5rem;
+    margin-top: 1.6rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--muted);
+  }
+  header .meta b { color: var(--ink-soft); font-weight: 600; }
+
+  /* ---- 摘要方块 ---- */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .tile { background: var(--surface); padding: 1.25rem 1.35rem; display: flex; flex-direction: column; gap: .3rem; }
+  .tile .k { font-family: var(--mono); font-size: .7rem; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); }
+  .tile .v { font-family: var(--serif); font-size: 2.1rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .tile .s { font-size: .82rem; color: var(--muted); }
+  .tile.flag { border-left: 3px solid var(--accent); }
+
+  /* ---- 区块 ---- */
+  section { display: flex; flex-direction: column; gap: 1.25rem; }
+  .sec-head { display: flex; flex-direction: column; gap: .45rem; }
+  .sec-head .num {
+    font-family: var(--mono); font-size: .72rem; letter-spacing: .14em;
+    color: var(--muted); text-transform: uppercase;
+  }
+
+  /* ---- 命令块 ---- */
+  .cmd {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 10px;
+    padding: 1.1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+    box-shadow: var(--shadow);
+  }
+  .cmd-row { display: flex; align-items: flex-start; gap: 1rem; }
+  .cmd-row pre {
+    margin: 0; flex: 1 1 auto; overflow-x: auto;
+    font-family: var(--mono); font-size: .855rem; line-height: 1.55;
+    color: var(--code-ink);
+  }
+  .cmd-row pre .c { color: #7C8798; }
+  .cmd-row pre .p { color: #FF7FA6; user-select: none; }
+  .copy {
+    flex: 0 0 auto;
+    font-family: var(--mono); font-size: .72rem; letter-spacing: .06em;
+    background: transparent; color: #9AA4B6;
+    border: 1px solid #2C3340; border-radius: 5px;
+    padding: .3rem .6rem; cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .copy:hover { color: #FFF; border-color: #4A5464; }
+  .copy[data-done="1"] { color: #55D39A; border-color: #2F5E48; }
+
+  /* ---- 表格 ---- */
+  .tbl-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  table { border-collapse: collapse; width: 100%; min-width: 44rem; font-size: .89rem; }
+  th, td { text-align: left; padding: .72rem .95rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  thead th {
+    background: var(--surface-2);
+    font-family: var(--mono); font-weight: 600;
+    font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.m, th.m { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.name { font-weight: 600; color: var(--ink); white-space: nowrap; }
+
+  .pill {
+    display: inline-block;
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .05em;
+    padding: .12rem .48rem; border-radius: 999px; white-space: nowrap;
+  }
+  .pill.ok   { background: var(--ok-bg);   color: var(--ok); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .pill.crit { background: var(--crit-bg); color: var(--crit); }
+
+  /* ---- 坑位卡片 ---- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: 1rem; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 1.2rem 1.3rem;
+    display: flex; flex-direction: column; gap: .6rem;
+  }
+  .card .tag {
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+  }
+  .card p { font-size: .89rem; color: var(--ink-soft); }
+  .card .fix {
+    font-size: .84rem; color: var(--muted);
+    border-top: 1px dashed var(--rule); padding-top: .6rem; margin-top: .1rem;
+  }
+  .card .fix b { color: var(--ink-soft); font-weight: 600; }
+
+  /* ---- 阶段序列 ---- */
+  ol.stages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  ol.stages li {
+    display: grid;
+    grid-template-columns: 2.6rem 1fr;
+    gap: 0 1rem;
+    padding: .95rem 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  ol.stages li:last-child { border-bottom: 0; }
+  ol.stages .n {
+    font-family: var(--mono); font-size: .8rem; color: var(--accent);
+    font-variant-numeric: tabular-nums; padding-top: .12rem;
+  }
+  ol.stages .t { font-weight: 650; font-size: .95rem; }
+  ol.stages .d { font-size: .875rem; color: var(--muted); grid-column: 2; }
+
+  /* ---- 页脚 ---- */
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.5rem;
+    display: flex; flex-direction: column; gap: .8rem;
+    font-size: .84rem; color: var(--muted);
+  }
+  footer ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .25rem; }
+
+  .fresh {
+    display: inline-flex; align-items: center; gap: .45rem;
+    font-family: var(--mono); font-size: .74rem;
+  }
+  .dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--ok); flex: 0 0 auto; }
+  .dot.stale { background: var(--warn); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Hermes Agent · 安装前置检查</p>
+    <h1>依赖预检台</h1>
+    <p class="lede">
+      在 Debian / Ubuntu 上跑官方 <code>install.sh</code> 之前，需要预先备齐的每一项依赖 ——
+      连同它们在各发行版上的真实版本、四个会让安装中途炸掉的已知坑，以及每天核对一次的上游版本。
+    </p>
+    <div class="meta">
+      <span class="fresh"><span class="dot" id="freshDot"></span><span id="freshTxt">核对于 2026-08-19</span></span>
+      <span>覆盖 <b>Debian 11 / 12 / 13、Ubuntu</b></span>
+      <span>用法 <b>CLI / 服务端</b></span>
+      <span>架构 <b>x64 / arm64</b></span>
+    </div>
+  </header>
+
+  <div class="tiles">
+    <div class="tile">
+      <span class="k">需预装组件</span>
+      <span class="v">10</span>
+      <span class="s">从 git 到 Chromium，全部可提前备齐</span>
+    </div>
+    <div class="tile">
+      <span class="k">Node 版本下限</span>
+      <span class="v">22.22.0</span>
+      <span class="s">由 react-router 8.3 强制</span>
+    </div>
+    <div class="tile flag">
+      <span class="k">Debian 11 撤源倒计时</span>
+      <span class="v" id="eolNum">—</span>
+      <span class="s" id="eolTxt">bullseye LTS 于 2026-08-31 到期</span>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <span class="num">怎么用</span>
+      <h2>先预检，再安装</h2>
+      <p class="note">
+        官方安装器的每项依赖都是「先探测、存在就跳过」，并且自带 <code>--ensure</code>
+        这个只装依赖不装本体的入口。所以预装不是绕过它，而是它本来就支持的路径。
+      </p>
+    </div>
+    <div class="cmd">
+      <div class="cmd-row">
+        <pre><span class="c"># 1 · 体检：只检测，不改动系统</span>
+<span class="p">$</span> bash hermes-preflight.sh --check
+
+<span class="c"># 2 · 装齐依赖（需要 root）</span>
+<span class="p">$</span> sudo bash hermes-preflight.sh --yes
+
+<span class="c"># 3 · 依赖就绪后，正式安装 Hermes</span>
+<span class="p">$</span> curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+<span class="p">$</span> source ~/.bashrc &amp;&amp; hermes doctor</pre>
+        <button class="copy" data-copy="bash hermes-preflight.sh --check">复制</button>
+      </div>
+    </div>
+    <p class="note">
+      只想用官方通道、不用脚本，最小可行的一条是
+      <code>curl -fsSL &lt;install.sh&gt; | bash -s -- --ensure node,browser,ripgrep,ffmpeg</code>
+      —— 它只装依赖，不 clone 仓库、不建 venv。
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="num">依赖矩阵</span>
+      <h2>要装什么，各发行版给的是什么版本</h2>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>组件</th>
+            <th>Hermes 的要求</th>
+            <th class="m">Debian 11</th>
+            <th class="m">Debian 12</th>
+            <th class="m">Debian 13</th>
+            <th>预装方式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">git</td><td>存在即可</td>
+            <td class="m">2.30.2</td><td class="m">2.39.5</td><td class="m">仓库版</td>
+            <td>apt</td>
+          </tr>
+          <tr>
+            <td class="name">curl · xz-utils</td><td>拉取并解 Node 的 .tar.xz</td>
+            <td class="m">仓库版</td><td class="m">仓库版</td><td class="m">仓库版</td>
+            <td>apt</td>
+          </tr>
+          <tr>
+            <td class="name">build-essential<br><span class="note">python3-dev · libffi-dev</span></td>
+            <td>Python 包无 wheel 时回落编译</td>
+            <td class="m">仓库版</td><td class="m">仓库版</td><td class="m">仓库版</td>
+            <td>apt</td>
+          </tr>
+          <tr>
+            <td class="name">ripgrep</td><td>文件检索</td>
+            <td class="m">12.1.1</td><td class="m">13.0.0</td><td class="m">14.1.1</td>
+            <td>apt</td>
+          </tr>
+          <tr>
+            <td class="name">ffmpeg</td><td>音频转码</td>
+            <td class="m">4.3.7</td><td class="m">仓库版</td><td class="m">仓库版</td>
+            <td>apt</td>
+          </tr>
+          <tr>
+            <td class="name">Node.js</td>
+            <td><span class="pill ok">≥ 22.22.0</span></td>
+            <td class="m" colspan="3">官方 tarball 解到 <code>/usr/local</code></td>
+            <td>nodejs.org</td>
+          </tr>
+          <tr>
+            <td class="name">npm</td>
+            <td><span class="pill crit">不得在 11.10.0 – 11.16.x</span></td>
+            <td class="m" colspan="3">随 Node 自带，超界则 <code>npm i -g npm@11.9.2</code></td>
+            <td>npm</td>
+          </tr>
+          <tr>
+            <td class="name">uv</td><td>Python 环境管理</td>
+            <td class="m" colspan="3">官方脚本装到 <code>/usr/local/bin</code></td>
+            <td>astral.sh</td>
+          </tr>
+          <tr>
+            <td class="name">Python</td>
+            <td><span class="pill ok">3.11</span></td>
+            <td class="m" colspan="3">uv 托管，预置到与安装器一致的目录</td>
+            <td>uv</td>
+          </tr>
+          <tr>
+            <td class="name">Chromium<br><span class="note">Playwright</span></td>
+            <td>浏览器工具链</td>
+            <td class="m" colspan="3">运行库走 apt，浏览器走 <code>npx playwright install</code></td>
+            <td>混合</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">
+      Debian 13 与 Ubuntu 24.04+ 做过 time_t 转换，<code>libasound2</code> 之类改名成了
+      <code>libasound2t64</code>（<code>libatk1.0-0</code>、<code>libcups2</code>、
+      <code>libatspi2.0-0</code>、<code>libglib2.0-0</code> 同理）。别硬编码映射表 ——
+      对每个候选名用 <code>apt-cache show</code> 在两者之间探测择一即可。
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="num">已知坑</span>
+      <h2>照着官方文档做也会炸的四个地方</h2>
+    </div>
+    <div class="cards">
+
+      <div class="card">
+        <span class="tag" style="color:var(--crit)">撤源</span>
+        <h3>Debian 11 的 apt 源即将消失</h3>
+        <p>
+          bullseye 的 LTS 在 2026-08-31 到期，之后官方源撤到
+          <code>archive.debian.org</code>，<code>apt-get update</code> 直接失败，
+          后面所有包安装全部连带失败。
+        </p>
+        <p class="fix"><b>处理</b>：改写 <code>sources.list</code> 指向 archive，
+          并关掉 <code>Check-Valid-Until</code>；原文件带时间戳备份，
+          <code>sources.list.d</code> 里的失效条目一并注释。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag" style="color:var(--ok)">已澄清</span>
+        <h3>Node 二进制的 libc 门槛</h3>
+        <p>
+          Node 官方 Linux x64/arm64 二进制的 tier-1 下限是 glibc ≥ 2.28、
+          libstdc++ ≥ 6.0.25（<code>GLIBCXX_3.4.25</code>）。bullseye 是
+          glibc 2.31 + <code>GLIBCXX_3.4.28</code> —— <b>满足要求，Node 26 本身跑得起来</b>。
+        </p>
+        <p class="fix"><b>处理</b>：仍然下载解包后先跑一次 <code>node -v</code> 再决定装不装，
+          跑不起来自动降大版本。零成本的保险，也覆盖更老的衍生发行版。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag" style="color:var(--crit)">不兼容</span>
+        <h3>Playwright 不再支持 bullseye</h3>
+        <p>
+          <code>playwright install --with-deps</code> 在 bullseye 上会报
+          “only Ubuntu is supported”，或者装完仍漏库，浏览器起不来。
+        </p>
+        <p class="fix"><b>处理</b>：自己按包名装齐运行库，只跑<b>不带</b>
+          <code>--with-deps</code> 的 <code>npx playwright install chromium</code>，
+          最后用 <code>ldd chrome | grep "not found"</code> 实测校验。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag" style="color:var(--warn)">版本黑名单</span>
+        <h3>npm 11.10 – 11.16 会被安装器拒绝</h3>
+        <p>
+          这几个版本因 <code>.npmrc</code> 兼容问题被官方安装器明确拒绝，
+          撞上了会在依赖安装阶段直接停下。
+        </p>
+        <p class="fix"><b>处理</b>：预检时比对区间，落在里面就
+          <code>npm i -g npm@11.9.2</code> 换出来。Node 22 自带的 npm 10.x 不受影响。</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="num">上游追踪</span>
+      <h2>每天核对一次的版本</h2>
+      <p class="note">这些数字直接决定预检脚本该拉哪个包；过期的值会让预检对着不存在的文件名下载。</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>来源</th><th class="m">当前值</th><th>对预检的意义</th><th>状态</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">Node 22.x LTS</td><td class="m">22.23.2</td>
+            <td>降级探测的兜底版本，满足 22.22.0 下限</td>
+            <td><span class="pill ok">可用</span></td>
+          </tr>
+          <tr>
+            <td class="name">Node 24.x</td><td class="m">24.19.0</td>
+            <td>降级探测的首选版本</td>
+            <td><span class="pill ok">可用</span></td>
+          </tr>
+          <tr>
+            <td class="name">Node 26.x</td><td class="m">26.7.0</td>
+            <td>官方安装器自己会拉的版本</td>
+            <td><span class="pill ok">bullseye 可跑</span></td>
+          </tr>
+          <tr>
+            <td class="name">uv</td><td class="m">0.12.5</td>
+            <td>装 Python 3.11 与建 venv 的工具</td>
+            <td><span class="pill ok">可用</span></td>
+          </tr>
+          <tr>
+            <td class="name">Playwright</td><td class="m">1.62.1</td>
+            <td>决定 Chromium 版本与运行库清单</td>
+            <td><span class="pill warn">bullseye 需手动装库</span></td>
+          </tr>
+          <tr>
+            <td class="name">hermes-agent 仓库</td><td class="m">2026-08-19</td>
+            <td>最后一次推送；安装器常量可能随之变动</td>
+            <td><span class="pill ok">活跃</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="num">生命周期</span>
+      <h2>目标发行版还能撑多久</h2>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>发行版</th><th class="m">常规支持至</th><th class="m">LTS 至</th><th class="m">剩余</th><th>影响</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">Debian 11 bullseye</td>
+            <td class="m">2024-08-14</td><td class="m">2026-08-31</td>
+            <td class="m" data-until="2026-08-31">—</td>
+            <td>到期后需改用 <code>archive.debian.org</code></td>
+          </tr>
+          <tr>
+            <td class="name">Debian 12 bookworm</td>
+            <td class="m">2026-07-11</td><td class="m">2028-06-30</td>
+            <td class="m" data-until="2028-06-30">—</td>
+            <td>已进入 LTS，源正常</td>
+          </tr>
+          <tr>
+            <td class="name">Debian 13 trixie</td>
+            <td class="m">当前 stable</td><td class="m">—</td>
+            <td class="m">—</td>
+            <td>注意 t64 包名</td>
+          </tr>
+          <tr>
+            <td class="name">Ubuntu 24.04 LTS</td>
+            <td class="m">2029-04</td><td class="m">2034-04 (Pro)</td>
+            <td class="m" data-until="2029-04-30">—</td>
+            <td>注意 t64 包名</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="num">预检脚本</span>
+      <h2>六个阶段，每个都可重入</h2>
+      <p class="note">失败即停并打印原因；重复执行时已完成的阶段会直接跳过。</p>
+    </div>
+    <ol class="stages">
+      <li>
+        <span class="n">00</span><span class="t">环境判定</span>
+        <span class="d">读 <code>/etc/os-release</code> 确认 apt 系；记录架构、glibc、libstdc++ 最高 GLIBCXX</span>
+      </li>
+      <li>
+        <span class="n">01</span><span class="t">apt 源可用性</span>
+        <span class="d">试跑 <code>apt-get update</code>；Debian 11 撤源场景下经授权改写到 archive，原文件备份</span>
+      </li>
+      <li>
+        <span class="n">02</span><span class="t">基础系统包</span>
+        <span class="d">ca-certificates、curl、git、xz-utils、build-essential、python3-dev、libffi-dev、ripgrep、ffmpeg</span>
+      </li>
+      <li>
+        <span class="n">03</span><span class="t">Node.js</span>
+        <span class="d">下载后<b>实际执行</b> <code>node -v</code> 验证，24 → 22 降级；npm 撞黑名单则换 11.9.2</span>
+      </li>
+      <li>
+        <span class="n">04</span><span class="t">uv + Python 3.11</span>
+        <span class="d">uv 装到 <code>/usr/local/bin</code>，Python 预置到与安装器一致的目录，sudo 场景下顺带给原用户也备一份</span>
+      </li>
+      <li>
+        <span class="n">05</span><span class="t">Chromium</span>
+        <span class="d">运行库按 t64 择一安装，浏览器不带 <code>--with-deps</code>，最后 <code>ldd</code> 实测缺库</span>
+      </li>
+      <li>
+        <span class="n">06</span><span class="t">官方 --ensure 兜底</span>
+        <span class="d">跑一次官方依赖通道查漏，然后打印就绪报告</span>
+      </li>
+    </ol>
+  </section>
+
+  <footer>
+    <p><b style="color:var(--ink-soft)">数据来源</b></p>
+    <ul>
+      <li>Node 各版本线：<code>nodejs.org/dist/latest-vN.x/</code>；平台下限取自 nodejs/node 的 BUILDING.md</li>
+      <li>Debian 包版本：<code>api.ftp-master.debian.org/madison</code> 与 <code>sources.debian.org</code></li>
+      <li>uv / Playwright：GitHub Releases 与 npm registry</li>
+      <li>Hermes 安装器常量：<code>hermes-agent.nousresearch.com/install.sh</code> 与官方安装文档</li>
+    </ul>
+    <p class="note">
+      本页每天由一个定时任务重新核对上述来源后重新发布；「核对于」时间超过两天未更新会转为黄色提示。
+      页面本身不联网，所有数值都是核对当天写死进来的。
+    </p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    "use strict";
+
+    var CHECKED_AT = "2026-08-19";   // 每次定时刷新时由任务改写
+
+    function daysBetween(a, b) {
+      return Math.round((b - a) / 86400000);
+    }
+
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // --- 核对新鲜度 ---
+    var parts = CHECKED_AT.split("-");
+    var checked = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+    var age = daysBetween(checked, today);
+    var txt = document.getElementById("freshTxt");
+    var dot = document.getElementById("freshDot");
+    if (txt) {
+      if (age <= 0)      txt.textContent = "今天核对 · " + CHECKED_AT;
+      else if (age === 1) txt.textContent = "昨天核对 · " + CHECKED_AT;
+      else                txt.textContent = age + " 天前核对 · " + CHECKED_AT;
+    }
+    if (dot && age > 2) dot.classList.add("stale");
+
+    // --- Debian 11 撤源倒计时 ---
+    var eol = new Date(2026, 7, 31);            // 2026-08-31
+    var left = daysBetween(today, eol);
+    var num = document.getElementById("eolNum");
+    var sub = document.getElementById("eolTxt");
+    if (num && sub) {
+      if (left > 0) {
+        num.textContent = left + " 天";
+        sub.textContent = "bullseye LTS 于 2026-08-31 到期";
+      } else {
+        num.textContent = "已到期";
+        num.style.color = "var(--crit)";
+        sub.textContent = "官方源应已撤到 archive.debian.org";
+      }
+    }
+
+    // --- 生命周期表里的剩余天数 ---
+    document.querySelectorAll("td[data-until]").forEach(function (td) {
+      var d = td.getAttribute("data-until").split("-");
+      var end = new Date(+d[0], +d[1] - 1, +d[2]);
+      var n = daysBetween(today, end);
+      if (n <= 0) { td.textContent = "已到期"; return; }
+      if (n < 365) { td.textContent = n + " 天"; return; }
+      td.textContent = (n / 365).toFixed(1) + " 年";
+    });
+
+    // --- 复制按钮 ---
+    document.querySelectorAll(".copy").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var text = btn.getAttribute("data-copy") || "";
+        var done = function () {
+          var old = btn.textContent;
+          btn.textContent = "已复制";
+          btn.setAttribute("data-done", "1");
+          setTimeout(function () {
+            btn.textContent = old;
+            btn.removeAttribute("data-done");
+          }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () {});
+        } else {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand("copy"); done(); } catch (e) {}
+          document.body.removeChild(ta);
+        }
+      });
+    });
+  })();
+</script>
