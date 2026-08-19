@@ -524,9 +524,9 @@
             <td><span class="pill warn">bullseye 需手动装库</span></td>
           </tr>
           <tr>
-            <td class="name">hermes-agent 仓库</td><td class="m">2026-08-19</td>
-            <td>最后一次推送；安装器常量可能随之变动</td>
-            <td><span class="pill ok">活跃</span></td>
+            <td class="name">install.sh 指纹</td><td class="m">0582d9b1 · 149 KB</td>
+            <td>安装器脚本的 sha256 前 8 位；它一变，预检的假设就得复核</td>
+            <td><span class="pill ok">已核对</span></td>
           </tr>
         </tbody>
       </table>
@@ -612,12 +612,18 @@
   </section>
 
   <footer>
-    <p><b style="color:var(--ink-soft)">数据来源</b></p>
+    <p><b style="color:var(--ink-soft)">每天核对的来源</b></p>
     <ul>
-      <li>Node 各版本线：<code>nodejs.org/dist/latest-vN.x/</code>；平台下限取自 nodejs/node 的 BUILDING.md</li>
-      <li>Debian 包版本：<code>api.ftp-master.debian.org/madison</code> 与 <code>sources.debian.org</code></li>
-      <li>uv / Playwright：GitHub Releases 与 npm registry</li>
-      <li>Hermes 安装器常量：<code>hermes-agent.nousresearch.com/install.sh</code> 与官方安装文档</li>
+      <li>Node 各版本线：<code>nodejs.org/dist/latest-vN.x/</code></li>
+      <li>uv：PyPI 的 JSON 接口；Playwright：npm registry</li>
+      <li>安装器指纹与常量：浅克隆 <code>NousResearch/hermes-agent</code> 后读 <code>scripts/install.sh</code>
+        —— 与站点上分发的那份字节一致，但站点域名在核对任务的沙箱里被出口策略拦截，走 git 才取得到</li>
+    </ul>
+    <p><b style="color:var(--ink-soft)">不参与每日核对的</b></p>
+    <ul>
+      <li>依赖矩阵里的 Debian 包版本：发行版内本来就是冻结的，只在点版本更新时才动，
+        取自 <code>api.ftp-master.debian.org/madison</code>，人工复核</li>
+      <li>Node 平台下限（glibc 2.28 / GLIBCXX_3.4.25）：取自 nodejs/node 的 BUILDING.md，人工复核</li>
     </ul>
     <p class="note">
       本页每天由一个定时任务重新核对上述来源后重新发布；「核对于」时间超过两天未更新会转为黄色提示。
