@@ -36,7 +36,7 @@ BASE_PKGS="ca-certificates curl git xz-utils tar unzip file procps
            ripgrep ffmpeg"
 
 # Playwright Chromium 运行库候选。跨版本包名会漂移（Ubuntu 24.04+/Debian 13 的 t64
-# 转换），所以不硬编码映射表，逐个用 apt-cache 在 NAME / NAMEt64 间择一。
+# 转换），所以不硬编码映射表，逐个用 apt_pick 在 NAMEt64 / NAME 间择一（见该函数）。
 PW_LIB_CANDIDATES="libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libatspi2.0-0
                    libcups2 libdrm2 libgbm1 libxkbcommon0 libxcomposite1
                    libxdamage1 libxfixes3 libxrandr2 libxcb1 libx11-6 libxext6
@@ -118,11 +118,21 @@ ver_clean() {
     printf '%s' "$1" | grep -o '[0-9][0-9.]*' | head -n1
 }
 
-# apt_pick NAME -> 在 NAME 和 NAMEt64 之间挑一个仓库里真实存在的
+# apt_can_install NAME -> 该名字能被 apt 真正解析成一个可安装的包
+#
+# 不能用 apt-cache show 判断：Ubuntu 24.04 上 `apt-cache show libasound2` 返回成功
+# （t64 转换后它是个被 Provides 的虚包，有记录），但 `apt-get install libasound2`
+# 解析失败。用 -s 模拟安装才是可靠的判据，且不需要 root。
+apt_can_install() {
+    apt-get install -s -qq "$1" >/dev/null 2>&1
+}
+
+# apt_pick NAME -> 在 NAMEt64 和 NAME 之间挑一个真能装上的
+# t64 转换后的那个才是真包，存在就优先用它。
 apt_pick() {
     local n="$1"
-    if apt-cache show "$n" >/dev/null 2>&1; then printf '%s' "$n"; return 0; fi
-    if apt-cache show "${n}t64" >/dev/null 2>&1; then printf '%s' "${n}t64"; return 0; fi
+    if apt_can_install "${n}t64"; then printf '%s' "${n}t64"; return 0; fi
+    if apt_can_install "$n";      then printf '%s' "$n";      return 0; fi
     return 1
 }
 
@@ -325,12 +335,13 @@ step "Stage 2 -- 基础系统包"
 
 _want=""; _missing=""
 for p in $BASE_PKGS; do
-    apt_installed "$p" && continue
+    # 先解析真实包名再判断是否已装 —— 装着的可能是 t64 变体
     if real="$(apt_pick "$p")"; then
+        apt_installed "$real" && continue
         _want="$_want $real"
         _missing="$_missing $real"
     else
-        warn "仓库里没有包 ${p}，跳过。"
+        warn "仓库里没有可安装的 ${p}（也没有 ${p}t64），跳过。"
     fi
 done
 
@@ -571,7 +582,7 @@ else
             apt_installed "$real" && continue
             _pwwant="$_pwwant $real"; _pwmiss="$_pwmiss $real"
         else
-            warn "仓库里没有 ${p}（也没有 ${p}t64），跳过。"
+            warn "仓库里没有可安装的 ${p}（也没有 ${p}t64），跳过。"
         fi
     done
 

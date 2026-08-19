@@ -93,7 +93,7 @@ Node 官方 Linux x64/arm64 二进制的 tier-1 下限是 glibc ≥ 2.28、libst
 
 另外，Ubuntu 24.04+ / Debian 13 的 time_t 转换把 `libasound2` 改名成了 `libasound2t64`
 （`libatk1.0-0`、`libcups2`、`libatspi2.0-0`、`libglib2.0-0` 同理）。脚本不硬编码映射表，
-对每个候选名用 `apt-cache show` 在 `NAME` / `NAMEt64` 之间探测择一。
+对每个候选名用 `apt-get install -s` 模拟安装来探测，t64 变体优先。**不能用 `apt-cache show`**：Ubuntu 24.04 上它对 `libasound2` 返回成功（被 Provides 的虚包），但实际装不上。
 
 ## 排查
 

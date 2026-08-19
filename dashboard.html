@@ -424,7 +424,7 @@
       Debian 13 与 Ubuntu 24.04+ 做过 time_t 转换，<code>libasound2</code> 之类改名成了
       <code>libasound2t64</code>（<code>libatk1.0-0</code>、<code>libcups2</code>、
       <code>libatspi2.0-0</code>、<code>libglib2.0-0</code> 同理）。别硬编码映射表 ——
-      对每个候选名用 <code>apt-cache show</code> 在两者之间探测择一即可。
+      对每个候选名用 <code>apt-get install -s</code> 模拟安装探测，t64 变体优先 —— 不能用 <code>apt-cache show</code>，它对 <code>libasound2</code> 这种被 Provides 的虚包会返回成功，但实际装不上。
     </p>
   </section>
 
