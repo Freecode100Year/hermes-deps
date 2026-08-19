@@ -3,9 +3,18 @@
 在正式跑官方安装器之前，先把 Hermes Agent 需要的全部依赖装齐并**实测验证**，
 让正式安装时每个检测点都命中「已存在 → 跳过」，避免长链条网络安装半路失败。
 
+**依赖看板** → <https://claude.ai/code/artifact/5e76af9d-cec8-4648-b243-dd52cc04d356>
+
+每天由定时任务核对一次上游版本后重新发布：Node 各版本线、uv、Playwright、
+官方安装器的指纹与关键常量。页面源码就是本仓库的 `dashboard.html`。
+
+> 该看板是一个 Claude Artifact，默认私有 —— 只有页面所有者从分享菜单公开后，
+> 上面这个链接对其他人才可访问。
+
 ```
 hermes-deps/
 ├── hermes-preflight.sh   # 主脚本，单文件、幂等、可重复执行
+├── dashboard.html        # 依赖看板页面源码，由定时任务每日更新后重新发布
 └── README.md
 ```
 
