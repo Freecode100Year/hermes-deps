@@ -289,7 +289,7 @@
       连同它们在各发行版上的真实版本、四个会让安装中途炸掉的已知坑，以及每天核对一次的上游版本。
     </p>
     <div class="meta">
-      <span class="fresh"><span class="dot" id="freshDot"></span><span id="freshTxt">核对于 2026-08-28</span></span>
+      <span class="fresh"><span class="dot" id="freshDot"></span><span id="freshTxt">核对于 2026-08-29</span></span>
       <span>覆盖 <b>Debian 11 / 12 / 13、Ubuntu</b></span>
       <span>用法 <b>CLI / 服务端</b></span>
       <span>架构 <b>x64 / arm64</b></span>
@@ -305,7 +305,7 @@
     <div class="tile">
       <span class="k">Node 版本下限</span>
       <span class="v">22.22.0</span>
-      <span class="s">由 react-router 8.3 强制</span>
+      <span class="s">由 nanoid 6 与 @babel/* 8.x 框定，非 react-router</span>
     </div>
     <div class="tile flag">
       <span class="k">Debian 11 撤源倒计时</span>
@@ -390,7 +390,7 @@
           </tr>
           <tr>
             <td class="name">Node.js</td>
-            <td><span class="pill ok">≥ 22.22.0</span></td>
+            <td><span class="pill ok">22.22+ · 24.11+ · 26+</span></td>
             <td class="m" colspan="3">官方 tarball 解到 <code>/usr/local</code></td>
             <td>nodejs.org</td>
           </tr>
@@ -425,6 +425,12 @@
       <code>libasound2t64</code>（<code>libatk1.0-0</code>、<code>libcups2</code>、
       <code>libatspi2.0-0</code>、<code>libglib2.0-0</code> 同理）。别硬编码映射表 ——
       对每个候选名用 <code>apt-get install -s</code> 模拟安装探测，t64 变体优先 —— 不能用 <code>apt-cache show</code>，它对 <code>libasound2</code> 这种被 Provides 的虚包会返回成功，但实际装不上。
+    </p>
+    <p class="note">
+      install.sh 的 <code>node_satisfies_build()</code> 已从单一下限变成三段式 <code>22.22+ / 24.11+ / 26+</code>
+      （nanoid 6 排斥 23、25；<code>@babel/*</code> 8.x 要求 <code>^22.18.0 || >=24.11.0</code>）。预检脚本只装
+      22.x / 24.x / 26.x 各自最新版，落点都在这些区间内，不受影响；但机器上已有的系统 Node 若恰好卡在空档
+      （23.x、25.x 或 24.0–24.10），预检原先的『已存在，跳过』判断会比官方安装器宽松 —— 已改成按同样的三段式校验。
     </p>
   </section>
 
@@ -524,7 +530,7 @@
             <td><span class="pill warn">bullseye 需手动装库</span></td>
           </tr>
           <tr>
-            <td class="name">install.sh 指纹</td><td class="m">c0380bc1 · 153 KB</td>
+            <td class="name">install.sh 指纹</td><td class="m">e6c7f2b5 · 155 KB</td>
             <td>安装器脚本的 sha256 前 8 位；它一变，预检的假设就得复核</td>
             <td><span class="pill ok">已核对</span></td>
           </tr>
@@ -637,7 +643,7 @@
   (function () {
     "use strict";
 
-    var CHECKED_AT = "2026-08-28";   // 每次定时刷新时由任务改写
+    var CHECKED_AT = "2026-08-29";   // 每次定时刷新时由任务改写
 
     function daysBetween(a, b) {
       return Math.round((b - a) / 86400000);

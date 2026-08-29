@@ -20,8 +20,9 @@ hermes-deps/
 
 ## 为什么这样做有效
 
-官方 `install.sh` 的每个依赖都是**先 `command -v` 探测、存在就跳过**（Node 额外校验版本
-下限 `>= 22.22.0`）。所以「预装」不是绕过安装器，而是它本来就支持的路径。
+官方 `install.sh` 的每个依赖都是**先 `command -v` 探测、存在就跳过**（Node 额外校验，而且
+不是单一下限：三段式 `22.22+ / 24.11+ / 26+`，`nanoid` 6 排斥 23、25，`@babel/*` 8.x 要求
+`^22.18.0 || >=24.11.0`）。所以「预装」不是绕过安装器，而是它本来就支持的路径。
 
 它还自带 `--ensure node,browser,ripgrep,ffmpeg` —— 只装依赖、不 clone repo、不建 venv。
 本脚本在最后一步会调用它作为兜底查漏。
@@ -89,8 +90,11 @@ scp C:\Users\sj929\hermes-deps\hermes-preflight.sh user@host:~/
 Node 官方 Linux x64/arm64 二进制的 tier-1 下限是 glibc ≥ 2.28、libstdc++ ≥ 6.0.25
 （`GLIBCXX_3.4.25`）。bullseye 是 glibc 2.31 + `GLIBCXX_3.4.28`，**满足要求，Node 26
 本身是能跑的**。脚本仍然下载解包后先执行一次 `./bin/node -v` 再决定装不装，跑不起来就
-自动降到下一个大版本 —— 这是零成本的保险，同时也覆盖了更老的衍生发行版。Hermes 的下限
-是 22.22.0，Node 22 LTS 即可满足；装好后官方安装器探测到就不会再拉别的版本。
+自动降到下一个大版本 —— 这是零成本的保险，同时也覆盖了更老的衍生发行版。Hermes 的引擎
+要求是三段式 `22.22+ / 24.11+ / 26+`（`nanoid` 6 排斥 23、25，`@babel/*` 8.x 要求
+`^22.18.0 || >=24.11.0`），脚本只装 22.x / 24.x / 26.x 各自最新版，落点都在这些区间内；
+装好后官方安装器探测到就不会再拉别的版本。若机器上已有系统 Node 恰好卡在空档（23.x、
+25.x 或 24.0–24.10），脚本按同样的三段式校验，不会误判为已就绪。
 
 **3. Playwright 不再支持 bullseye**
 `playwright install --with-deps` 在 bullseye 上会报 "only Ubuntu is supported" 或漏装库。

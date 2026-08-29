@@ -20,7 +20,11 @@ VERSION="1.0.0"
 
 # ---------------------------------------------------------------- 可调参数 ----
 
-NODE_MIN="22.22.0"                 # Hermes 要求的 Node 下限（react-router 8.3 强制）
+NODE_MIN="22.22.0"                 # Hermes 真正要求的是三段式 22.22+/24.11+/26+
+                                    # （nanoid 6 排斥 23、25；@babel/* 8.x 要求
+                                    # ^22.18.0 || >=24.11.0，非 react-router）；
+                                    # 见下方 node_engine_ok()，与 install.sh 的
+                                    # node_satisfies_build() 保持一致
 NODE_CANDIDATES="24 22"            # 自动降级顺序：先试新的，跑不起来就退
 NPM_BAD_LO="11.10.0"               # install.sh 拒绝的 npm 区间 [LO, HI)
 NPM_BAD_HI="11.17.0"
@@ -111,6 +115,22 @@ have() { command -v "$1" >/dev/null 2>&1; }
 # ver_ge A B  ->  真 当且仅当 A >= B
 ver_ge() {
     [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V 2>/dev/null | head -n1)" = "$2" ]
+}
+
+# node_engine_ok VERSION -> 真 当且仅当满足 Hermes 的三段式引擎范围
+# 22.22+ / 24.11+ / 26+（与 install.sh 的 node_satisfies_build() 保持一致）。
+# 单纯 ver_ge "$v" "$NODE_MIN" 会误判 23.x / 25.x / 24.0-24.10 为满足要求。
+node_engine_ok() {
+    local ver="${1#v}"
+    case "$ver" in *-*) return 1 ;; esac
+    local major="${ver%%.*}"
+    local minor="${ver#*.}"; minor="${minor%%.*}"
+    case "$major" in ''|*[!0-9]*) return 1 ;; esac
+    case "$minor" in ''|*[!0-9]*) minor=0 ;; esac
+    if [ "$major" -eq 22 ] && [ "$minor" -ge 22 ]; then return 0; fi
+    if [ "$major" -eq 24 ] && [ "$minor" -ge 11 ]; then return 0; fi
+    if [ "$major" -ge 26 ]; then return 0; fi
+    return 1
 }
 
 # 从 "v22.22.0" / "node v22.22.0" 之类里抠出纯版本号
@@ -388,12 +408,12 @@ step "Stage 3 -- Node.js（按实际可执行性验证，而非只看版本号�
 NODE_READY=0
 if have node && have npm; then
     _nv="$(ver_clean "$(node -v 2>/dev/null)")"
-    if [ -n "$_nv" ] && ver_ge "$_nv" "$NODE_MIN" && node -e 'process.exit(0)' >/dev/null 2>&1; then
+    if [ -n "$_nv" ] && node_engine_ok "$_nv" && node -e 'process.exit(0)' >/dev/null 2>&1; then
         NODE_READY=1
-        ok "已有可用 Node v${_nv}（>= ${NODE_MIN}），跳过安装。"
-        report "OK" "node" "v${_nv}" "$(command -v node)" "满足下限 ${NODE_MIN}"
+        ok "已有可用 Node v${_nv}（满足 22.22+/24.11+/26+），跳过安装。"
+        report "OK" "node" "v${_nv}" "$(command -v node)" "满足引擎范围 ${NODE_MIN}+/24.11+/26+"
     else
-        warn "已有 Node（${_nv:-未知}）不满足下限 ${NODE_MIN} 或无法执行，将安装新版本。"
+        warn "已有 Node（${_nv:-未知}）不满足 22.22+/24.11+/26+ 或无法执行，将安装新版本。"
     fi
 else
     info "未检测到 node/npm。"
