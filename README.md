@@ -73,7 +73,7 @@ scp C:\Users\sj929\hermes-deps\hermes-preflight.sh user@host:~/
 |---|---|
 | 0 | 读 `/etc/os-release`，确认 apt 系；记录架构、glibc、libstdc++ 最高 `GLIBCXX` |
 | 1 | 试跑 `apt-get update`；Debian 11 撤源场景下（经授权）改写到 `archive.debian.org`，原文件备份 |
-| 2 | 基础包：`ca-certificates curl git xz-utils tar unzip file procps build-essential python3-dev libffi-dev pkg-config libssl-dev ripgrep ffmpeg` |
+| 2 | 基础包：`ca-certificates curl git xz-utils tar unzip file procps build-essential python3-dev libffi-dev pkg-config libssl-dev ripgrep ffmpeg libatomic1` |
 | 3 | Node.js：**下载后实际执行 `node -v` 验证**，24 → 22 降级；npm 落在 `[11.10.0, 11.17.0)` 黑名单则换成 11.9.2 |
 | 4 | `uv` 装到 `/usr/local/bin`，`uv python install 3.11` 预置到与 install.sh 一致的路径 |
 | 5 | Chromium 运行库（跨版本 `t64` 包名自动择一）+ `npx playwright install chromium`（**不带** `--with-deps`）+ `ldd` 实测校验 |

@@ -35,9 +35,11 @@ INSTALLER_URL="https://hermes-agent.nousresearch.com/install.sh"
 UV_INSTALLER_URL="https://astral.sh/uv/install.sh"
 
 # 基础系统包（apt）
+# libatomic1：Node 官方 linux-x64 二进制链接了 libatomic.so.1（install.sh 自 v26.7.0
+# 起观察到），精简 Debian/Ubuntu 镜像不带，缺失时下载下来的 Node 直接无法启动（上游 #87460）。
 BASE_PKGS="ca-certificates curl git xz-utils tar unzip file procps
            build-essential python3-dev libffi-dev pkg-config libssl-dev
-           ripgrep ffmpeg"
+           ripgrep ffmpeg libatomic1"
 
 # Playwright Chromium 运行库候选。跨版本包名会漂移（Ubuntu 24.04+/Debian 13 的 t64
 # 转换），所以不硬编码映射表，逐个用 apt_pick 在 NAMEt64 / NAME 间择一（见该函数）。
