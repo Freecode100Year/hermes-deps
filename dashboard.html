@@ -289,7 +289,7 @@
       连同它们在各发行版上的真实版本、四个会让安装中途炸掉的已知坑，以及每天核对一次的上游版本。
     </p>
     <div class="meta">
-      <span class="fresh"><span class="dot" id="freshDot"></span><span id="freshTxt">核对于 2026-09-27</span></span>
+      <span class="fresh"><span class="dot" id="freshDot"></span><span id="freshTxt">核对于 2026-09-28</span></span>
       <span>覆盖 <b>Debian 11 / 12 / 13、Ubuntu</b></span>
       <span>用法 <b>CLI / 服务端</b></span>
       <span>架构 <b>x64 / arm64</b></span>
@@ -541,9 +541,9 @@
             <td><span class="pill warn">bullseye 需手动装库</span></td>
           </tr>
           <tr>
-            <td class="name">install.sh 指纹</td><td class="m">1e857fc7 · 37 KB</td>
-            <td>安装器脚本的 sha256 前 8 位；这次又变了，但 pm/lock.json 锁定的版本号未动，见下方说明</td>
-            <td><span class="pill warn">二次变动</span></td>
+            <td class="name">install.sh 指纹</td><td class="m">0fbf2969 · 39 KB</td>
+            <td>安装器脚本的 sha256 前 8 位；连续第三天变化，但 pm/lock.json 锁定的版本号仍未动，见下方说明</td>
+            <td><span class="pill warn">三次变动</span></td>
           </tr>
         </tbody>
       </table>
@@ -574,6 +574,29 @@
       pm 按 lock.json 精确下载、不再靠 <code>command -v</code> 探测、
       <code>--ensure</code> 已移除」这个已识别的架构性断层依旧原样存在，
       仍需人工重新设计 Stage 2–6 才能让预检脚本跟上，本次不做进一步改写。
+    </p>
+    <p class="note">
+      <b style="color:var(--warn)">2026-09-28 复核：指纹连续第三天变动，逐行读完确认断层比预想更彻底。</b>
+      install.sh 又变了（<code>1e857fc7</code> · 37 KB、813 行 →
+      <code>0fbf2969</code> · 39 KB、857 行），重新拉的 <code>pm/lock.json</code> 里
+      Node 26.7.0、npm 12.0.2、Python 3.14.7（构建号 +20260901）、ripgrep 15.2.0、
+      ffmpeg 9.0.1、Chromium 1208+145.0.7632.6、git 2.53.0+3 与前两天核对时完全一致，
+      仍是脚本内部实现的调整。这次逐行通读新版本发现两点此前没写清楚的细节：
+      一是 <code>stage_prerequisites()</code> 现在只检查 <code>git</code>、<code>curl</code>
+      （以及 musl 主机上的系统 <code>libstdc++</code>），脚本里已经<b>完全没有</b>
+      build-essential、python3-dev、libffi-dev、ripgrep、ffmpeg、libatomic1 这类 apt
+      包名或版本号字符串——本预检脚本 Stage 2 装的那份基础包清单，官方安装器如今根本不检测，
+      装不装它都不影响 install.sh 自身跑不跑得起来；二是全文已经搜不到任何 Node 版本区间
+      判断逻辑（<code>node_satisfies_build</code>、22.22/24.11、nanoid/babel 相关注释
+      一个都不剩），三段式 <code>22.22+/24.11+/26+</code> 的引擎范围校验已经不在 install.sh
+      里——Node 完全交给 pm 在构建阶段（<code>hermes_cli/source_completion.py</code>）按
+      lock.json <b>精确单一版本</b>（26.7.0）下载，不再是「探测已有版本是否落在区间内」的模型。
+      也就是说本页 Node 版本下限、npm 黑名单等常量描述的已经是一套 install.sh 不再执行的旧
+      校验逻辑；本预检脚本目前仍能让 <code>hermes</code> 装起来（因为 git/curl 都满足、
+      Node/npm/Python 等版本高于 pm 的下限不会被拒绝），但它检查的坑位已经不是官方安装器
+      实际会踩的坑位。这个结论强化而非新增了 09-26 已识别的架构性断层，仍按原判断
+      不在本次自动改写 NODE_MIN / NPM_BAD_LO / NPM_BAD_HI / PYTHON_VER 等常量，
+      留给人工重新设计。
     </p>
   </section>
 
@@ -681,7 +704,7 @@
   (function () {
     "use strict";
 
-    var CHECKED_AT = "2026-09-27";   // 每次定时刷新时由任务改写
+    var CHECKED_AT = "2026-09-28";   // 每次定时刷新时由任务改写
 
     function daysBetween(a, b) {
       return Math.round((b - a) / 86400000);
