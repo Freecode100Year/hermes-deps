@@ -289,7 +289,7 @@
       连同它们在各发行版上的真实版本、四个会让安装中途炸掉的已知坑，以及每天核对一次的上游版本。
     </p>
     <div class="meta">
-      <span class="fresh"><span class="dot" id="freshDot"></span><span id="freshTxt">核对于 2026-10-04</span></span>
+      <span class="fresh"><span class="dot" id="freshDot"></span><span id="freshTxt">核对于 2026-10-05</span></span>
       <span>覆盖 <b>Debian 11 / 12 / 13、Ubuntu</b></span>
       <span>用法 <b>CLI / 服务端</b></span>
       <span>架构 <b>x64 / arm64</b></span>
@@ -541,9 +541,9 @@
             <td><span class="pill warn">bullseye 需手动装库</span></td>
           </tr>
           <tr>
-            <td class="name">install.sh 指纹</td><td class="m">25d3c955 · 42 KB</td>
-            <td>安装器脚本的 sha256 前 8 位；连续第二天未变，见下方说明</td>
-            <td><span class="pill ok">未变动</span></td>
+            <td class="name">install.sh 指纹</td><td class="m">e5b8a803 · 43 KB</td>
+            <td>安装器脚本的 sha256 前 8 位；今天变动，见下方说明</td>
+            <td><span class="pill warn">今日变动</span></td>
           </tr>
         </tbody>
       </table>
@@ -695,6 +695,31 @@
       直接来源里，仅 uv 有补丁级更新（0.12.22 → 0.12.23），Node 22.x/24.x/26.x 与
       Playwright 均未变。
     </p>
+    <p class="note">
+      <b style="color:var(--warn)">2026-10-05 核对：指纹变动，深挖出一处此前没见过的新行为。</b>
+      重新浅克隆，<code>scripts/install.sh</code> 从 <code>25d3c955</code> · 42 KB、889 行
+      变成 <code>e5b8a803</code> · 43 KB、903 行（+14 行）。逐项核对 <code>pm/lock.json</code>：
+      Node 26.7.0、npm 12.0.2、Python 3.14.7+20260901、ripgrep 15.2.0、ffmpeg 9.0.1、
+      Chromium 1208+145.0.7632.6、git 2.53.0+3 —— 全部与昨天完全一致，一个字节都没变。
+      这次把 sparse-checkout 范围扩到整个 <code>pm/</code> 包去追查改动来源：新增的 +14 行
+      全部落在 <code>stage_prerequisites()</code> 里，加了一段在非 root、非 musl、有控制终端的
+      glibc Linux 主机上、且 <code>ldconfig -p</code> 探测不到 <code>libatomic.so.1</code> 时
+      提前跑 <code>sudo -v</code> 缓存凭据的逻辑（配合 <code>bootstrap_pm()</code> 里已有的
+      "Refresh the sudo ticket cached in prerequisites" 续期调用）；真正的安装动作在
+      <code>pm/libatomic.py</code> 里，按发行版选 apt-get/dnf/yum/zypper/pacman/apk 装对应包，
+      在 PM 的安装锁内用 <code>sudo -n</code> 非交互执行，失败只留文字提示，不阻断安装。
+      也就是说官方安装器现在会<b>自己尝试把 libatomic 装上</b>，不再完全依赖用户提前装好——
+      这是实现层面的健壮性改进，不是版本或架构变化：<code>pm/lock.json</code> 没动，
+      <code>--ensure</code> 依旧没有恢复，<code>NODE_VERSION</code>、npm 黑名单区间、
+      静态 Python 版本号依旧全文搜不到。对本预检脚本没有破坏性影响，反而让 Stage 2
+      里预装的 <code>libatomic1</code> 更保险：只要它已经存在，官方安装器的
+      <code>ctypes.CDLL("libatomic.so.1")</code> 探测会直接通过，连 sudo 密码提示都不会
+      跳出来。09-26 识别的架构性断层（<code>git clone</code> 整仓库 + pm 按 lock.json
+      精确下载、不再靠 <code>command -v</code> 探测、<code>--ensure</code> 已从 install.sh
+      移除）维持原判断，本次同样不自动改写 NODE_MIN / NPM_BAD_LO / NPM_BAD_HI /
+      PYTHON_VER / BASE_PKGS，继续留给人工重新设计 Stage 2–6。上游三个直接来源
+      （Node 22.x/24.x/26.x、uv、Playwright）今天全部未变。
+    </p>
   </section>
 
   <section>
@@ -801,7 +826,7 @@
   (function () {
     "use strict";
 
-    var CHECKED_AT = "2026-10-04";   // 每次定时刷新时由任务改写
+    var CHECKED_AT = "2026-10-05";   // 每次定时刷新时由任务改写
 
     function daysBetween(a, b) {
       return Math.round((b - a) / 86400000);
