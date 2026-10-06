@@ -289,7 +289,7 @@
       连同它们在各发行版上的真实版本、四个会让安装中途炸掉的已知坑，以及每天核对一次的上游版本。
     </p>
     <div class="meta">
-      <span class="fresh"><span class="dot" id="freshDot"></span><span id="freshTxt">核对于 2026-10-05</span></span>
+      <span class="fresh"><span class="dot" id="freshDot"></span><span id="freshTxt">核对于 2026-10-06</span></span>
       <span>覆盖 <b>Debian 11 / 12 / 13、Ubuntu</b></span>
       <span>用法 <b>CLI / 服务端</b></span>
       <span>架构 <b>x64 / arm64</b></span>
@@ -541,7 +541,7 @@
             <td><span class="pill warn">bullseye 需手动装库</span></td>
           </tr>
           <tr>
-            <td class="name">install.sh 指纹</td><td class="m">e5b8a803 · 43 KB</td>
+            <td class="name">install.sh 指纹</td><td class="m">c2561be3 · 44 KB</td>
             <td>安装器脚本的 sha256 前 8 位；今天变动，见下方说明</td>
             <td><span class="pill warn">今日变动</span></td>
           </tr>
@@ -720,6 +720,30 @@
       PYTHON_VER / BASE_PKGS，继续留给人工重新设计 Stage 2–6。上游三个直接来源
       （Node 22.x/24.x/26.x、uv、Playwright）今天全部未变。
     </p>
+    <p class="note">
+      <b style="color:var(--warn)">2026-10-06 核对：指纹第六次变动，是一次新功能，不是依赖或架构变化。</b>
+      重新浅克隆，<code>scripts/install.sh</code> 从 <code>e5b8a803</code> · 43 KB、903 行
+      变成 <code>c2561be3</code> · 44 KB、917 行（+14 行）。逐项核对 <code>pm/lock.json</code>：
+      Node 26.7.0、npm 12.0.2、Python 3.14.7+20260901、ripgrep 15.2.0、ffmpeg 9.0.1、
+      Chromium 1208+145.0.7632.6、git 2.53.0+3 —— 全部与昨天完全一致，一个字节都没变。
+      扩大 sparse-checkout 到整个 <code>pm/</code> 包定位改动来源：新增的 +14 行是一个全新的
+      <code>--skip-computer-use</code>（别名 <code>-SkipComputerUse</code>）命令行开关，
+      配合 <code>bootstrap_pm()</code> 里新加的一行
+      <code>[ "$SKIP_COMPUTER_USE" = true ] &amp;&amp; pm_args+=(--without cua-driver)</code>，
+      用来放弃安装 <code>cua-driver</code>（trycua 的 computer-use 驱动，<code>pm/lock.json</code>
+      里已有该包，按平台下载预编译的 Rust 二进制 <code>cua-driver-rs</code>，sha256 校验后放进
+      pm 的 store，不走 apt/dpkg，<code>pm/libatomic.py</code> 之外的 <code>pm/package.py</code>
+      也没有调用任何系统包管理器）——即新功能本身不引入新的系统级依赖，预检脚本的基础包清单
+      无需跟进。<code>stage_prerequisites()</code> 仍然只检查 <code>git</code>、<code>curl</code>
+      （以及 glibc 主机上为 libatomic 预热 sudo 凭据、musl 主机上检测系统 libstdc++），全文依旧
+      搜不到 <code>NODE_VERSION</code>、<code>node_satisfies_build()</code>、npm 黑名单区间、
+      静态 Python 版本号或任何 apt/dpkg/yum/pacman 包名字符串，<code>--ensure</code> 也没有恢复。
+      09-26 识别的架构性断层（<code>git clone</code> 整仓库 + pm 按 lock.json 精确下载、不再靠
+      <code>command -v</code> 探测、<code>--ensure</code> 已从 install.sh 移除）维持原判断，
+      本次同样不自动改写 NODE_MIN / NPM_BAD_LO / NPM_BAD_HI / PYTHON_VER / BASE_PKGS，继续
+      留给人工重新设计 Stage 2–6。上游三个直接来源（Node 22.x/24.x/26.x、uv、Playwright）
+      今天全部未变。
+    </p>
   </section>
 
   <section>
@@ -826,7 +850,7 @@
   (function () {
     "use strict";
 
-    var CHECKED_AT = "2026-10-05";   // 每次定时刷新时由任务改写
+    var CHECKED_AT = "2026-10-06";   // 每次定时刷新时由任务改写
 
     function daysBetween(a, b) {
       return Math.round((b - a) / 86400000);
