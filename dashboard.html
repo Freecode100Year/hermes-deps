@@ -289,7 +289,7 @@
       连同它们在各发行版上的真实版本、四个会让安装中途炸掉的已知坑，以及每天核对一次的上游版本。
     </p>
     <div class="meta">
-      <span class="fresh"><span class="dot" id="freshDot"></span><span id="freshTxt">核对于 2026-10-23</span></span>
+      <span class="fresh"><span class="dot" id="freshDot"></span><span id="freshTxt">核对于 2026-10-24</span></span>
       <span>覆盖 <b>Debian 11 / 12 / 13、Ubuntu</b></span>
       <span>用法 <b>CLI / 服务端</b></span>
       <span>架构 <b>x64 / arm64</b></span>
@@ -541,7 +541,7 @@
             <td><span class="pill warn">bullseye 需手动装库</span></td>
           </tr>
           <tr>
-            <td class="name">install.sh 指纹</td><td class="m">99cb3691 · 65 KB</td>
+            <td class="name">install.sh 指纹</td><td class="m">abf33860 · 65 KB</td>
             <td>安装器脚本的 sha256 前 8 位</td>
             <td><span class="pill ok">可用</span></td>
           </tr>
@@ -1125,6 +1125,34 @@
       记录「未能精确定位」而不是编造具体内容。上游三个直接来源（Node 22.x/24.x/26.x 的
       22.23.4/24.22.1/26.12.1、uv 0.13.5、Playwright 1.64.1）今天全部未变。
     </p>
+    <p class="note">
+      <b style="color:var(--crit)">2026-10-24 核对：指纹第十三次变动，这次 <code>pm/lock.json</code> 自 09-26 发现架构断层
+      以来首次真的改了锁定版本——Node 与 Python 的锁定号都跳了。</b>
+      重新浅克隆，<code>scripts/install.sh</code> 从 <code>99cb3691</code> · 65 KB、1300 行
+      变成 <code>abf33860</code> · 65 KB、1302 行（+2 行）。这次逐项核对 <code>pm/lock.json</code>
+      与过去一个月（09-26 起连续 29 天）都不一样：<b>Node 从 26.7.0 跳到 26.12.1，Python 从
+      3.14.7+20260901 跳到 3.14.9+20261021</b>；npm 12.0.2、ripgrep 15.2.0、ffmpeg 9.0.1、
+      Chromium 1208+145.0.7632.6、git 2.53.0+3、uv 0.13.5、cua-driver 0.21.0 这七项均未变。
+      尝试按提交定位：把浅克隆加深到 130 个提交后，<code>git log --follow</code> 对
+      <code>pm/lock.json</code> 与 <code>scripts/install.sh</code> 两个文件给出的最新改动都落在
+      同一个边界提交上，而对该提交单独 <code>git show --stat</code> 却是空 diff——与 10-22/10-23
+      记录的同一个根因一致（受限 git 代理的浅克隆边界会把跨界提交误判成「从空树生成」），这次连
+      哪一次提交动了 lock.json 都定位不到，只能以内容级比对为准。转而核对内容本身：
+      <code>stage_prerequisites()</code> 原文一字未动，仍然只检查 <code>git</code>、
+      <code>curl</code>（以及 musl 主机上的系统 <code>libstdc++</code>、glibc 主机上为
+      libatomic 预热 sudo 凭据）；全文依旧搜不到 <code>NODE_VERSION</code>、
+      <code>node_satisfies_build()</code>、npm 黑名单区间、静态 Python 版本号或任何
+      apt/dpkg/yum/pacman 包名字符串，<code>--ensure</code> 也没有恢复——即这次 Node/Python
+      锁定版本的跳动，发生在 09-26 已识别的新架构（pm 按 lock.json 精确下载，不再靠
+      <code>command -v</code> 探测）内部，不涉及任何系统包，对本预检脚本的 Stage 2–6
+      依旧没有破坏性影响（它们本来就已经检查的是一套 install.sh 不再执行的旧逻辑）。
+      按原判断不自动改写 NODE_MIN / NPM_BAD_LO / NPM_BAD_HI / PYTHON_VER / BASE_PKGS，
+      继续留给人工重新设计 Stage 2–6；但这是该架构性断层被发现以来 <b>pm/lock.json 首次
+      真的变化</b>，值得单独标出，供重新设计时参考 Node 26.12.1 / Python 3.14.9 这两个新锁定号。
+      上游三个直接来源（Node 22.x/24.x/26.x 的 22.23.4/24.22.1/26.12.1、uv 0.13.5、
+      Playwright 1.64.1）今天全部未变，与锁定版本的跳动无关——pm 的 lock.json 是独立维护的
+      精确锁定，不是从这三个上游实时拉的最新版。
+    </p>
   </section>
 
   <section>
@@ -1231,7 +1259,7 @@
   (function () {
     "use strict";
 
-    var CHECKED_AT = "2026-10-23";   // 每次定时刷新时由任务改写
+    var CHECKED_AT = "2026-10-24";   // 每次定时刷新时由任务改写
 
     function daysBetween(a, b) {
       return Math.round((b - a) / 86400000);
